@@ -14,6 +14,12 @@ Refresh tokens are cryptographically random, stored only as SHA-256 hashes, expi
 2. Run `docker compose up --build`.
 3. Open [http://localhost:8080/scalar/v1](http://localhost:8080/scalar/v1). In Development the API applies EF Core migrations and seeds the Admin and Customer roles, configured Admin user, and sample catalog on startup.
 
+## Production deployment (Render API + Vercel frontend)
+
+The root `render.yaml` Blueprint provisions the .NET API and a managed PostgreSQL database in Frankfurt. The API applies EF Core migrations on startup, disables sample catalog seeding and sandbox checkout in Production, and exposes `/health` for Render health checks. The Vercel project should use `frontend/` as its Root Directory, `npm run build` as the build command, and `dist` as the output directory. `frontend/vercel.json` enables React Router SPA routes.
+
+After creating the Render Blueprint, set `VITE_API_BASE_URL` in the Vercel project to `https://<render-api-host>/api` and redeploy the frontend. Add `Cors__AllowedOrigins__0=https://<your-vercel-domain>` to the Render API service and redeploy it; use `Cors__AllowedOrigins__1` for a custom frontend domain. The Render Blueprint asks for the Admin email/password and scheduled export recipient. Review the paid Render plans before creating the Blueprint. Configure Brevo credentials in the Render API environment if real email delivery is required; without them, email stays in logging mode.
+
 ### Connect with DataGrip
 
 PostgreSQL is published to the host on `localhost:5432` by default (`POSTGRES_PORT` in `.env` can change the host port). In DataGrip, add a PostgreSQL data source and use:

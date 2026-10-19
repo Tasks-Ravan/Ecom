@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: ecommerce-api
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: PORT
+        value: "10000"
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: ecommerce-postgres
+          property: connectionString
+      - key: Jwt__Issuer
+        value: ECommerce.Api
+      - key: Jwt__Audience
+        value: ECommerce.Client
+      - key: Jwt__SecretKey
+        generateValue: true
+      - key: Jwt__ExpirationMinutes
+        value: "15"
+      - key: Admin__Email
+        sync: false
+      - key: Admin__Password
+        sync: false
+      - key: Admin__FirstName
+        value: System
+      - key: Admin__LastName
+        value: Administrator
+      - key: Seed__Enabled
+        value: "false"
+      - key: Payments__Sandbox__Enabled
+        value: "false"
+      - key: ProductExport__RecipientEmail
+        sync: false
+      - key: ProductExport__CronExpression
+        value: "0 8 * * *"
+
+databases:
+  - name: ecommerce-postgres
+    plan: basic-256mb
+    region: frankfurt
+    databaseName: ecommerce
+    user: ecommerce
+    postgresMajorVersion: "17"
