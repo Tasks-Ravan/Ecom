@@ -20,10 +20,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(DatabaseConnectionString.Normalize(builder.Configuration.GetConnectionString("DefaultConnection"))));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
-connectionString = DatabaseConnectionString.Normalize(connectionString);
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -98,12 +97,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 builder.Services.AddAuthorization();
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-{
-    if (allowedOrigins.Length > 0)
-        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
-}));
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IEmailSender>(services => emailOptions.IsLoggingMode
     ? new LoggingEmailSender(services.GetRequiredService<ILogger<LoggingEmailSender>>())
@@ -126,7 +119,8 @@ app.UseExceptionHandler();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync(app.Lifetime.ApplicationStopping);
+    if (app.Environment.IsDevelopment())
+        await db.Database.MigrateAsync(app.Lifetime.ApplicationStopping);
     await IdentitySeeder.SeedAsync(scope.ServiceProvider);
     var seedEnabled = builder.Configuration.GetValue<bool?>("Seed:Enabled") ?? app.Environment.IsDevelopment();
     if (seedEnabled)
@@ -137,10 +131,6 @@ await using (var scope = app.Services.CreateAsyncScope())
         await DataSeeder.SeedAsync(scope.ServiceProvider, customerPassword, app.Lifetime.ApplicationStopping);
     }
 }
-app.MapGet("/health", async (AppDbContext db, CancellationToken cancellationToken) =>
-    await db.Database.CanConnectAsync(cancellationToken)
-        ? Results.Ok(new { status = "healthy" })
-        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable));
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -149,7 +139,6 @@ if (app.Environment.IsDevelopment())
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
         .AddHttpAuthentication("Bearer", auth => auth.Token = ""));
 }
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
