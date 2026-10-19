@@ -8,6 +8,7 @@ import { CategoriesPage } from '../features/categories/CategoriesPage';
 import { BrandsPage } from '../features/brands/BrandsPage';
 import { ExportsPage } from '../features/exports/ExportsPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { CartPage, CheckoutPage } from '../features/checkout/CheckoutPages';
 import { AdminRoute, ForbiddenPage, NotFoundPage } from './guards';
 
 export const router = createBrowserRouter([
@@ -15,6 +16,8 @@ export const router = createBrowserRouter([
     { path: '/', element: <HomePage /> },
     { path: '/products', element: <ProductsPage /> },
     { path: '/products/:id', element: <ProductDetailPage /> },
+    { path: '/cart', element: <CartPage /> },
+    { path: '/checkout', element: <CheckoutPage /> },
   ] },
   { element: <AuthLayout />, children: [
     { path: '/login', element: <LoginPage /> },

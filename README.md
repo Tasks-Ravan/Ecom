@@ -14,6 +14,19 @@ Refresh tokens are cryptographically random, stored only as SHA-256 hashes, expi
 2. Run `docker compose up --build`.
 3. Open [http://localhost:8080/scalar/v1](http://localhost:8080/scalar/v1). In Development the API applies EF Core migrations and seeds the Admin and Customer roles, configured Admin user, and sample catalog on startup.
 
+### Connect with DataGrip
+
+PostgreSQL is published to the host on `localhost:5432` by default (`POSTGRES_PORT` in `.env` can change the host port). In DataGrip, add a PostgreSQL data source and use:
+
+- Host: `localhost`
+- Port: `5432` (or your configured `POSTGRES_PORT`)
+- Database: value of `POSTGRES_DB` in `.env`
+- User: value of `POSTGRES_USER` in `.env`
+- Password: value of `POSTGRES_PASSWORD` in `.env`
+- SSL: disable for this local Docker connection
+
+Click **Test Connection** and allow DataGrip to download its PostgreSQL driver if prompted. The PostgreSQL container must be running (`docker compose up -d postgres`).
+
 Use Scalar's authentication control to enter a bearer access token. Register via `POST /api/auth/register`, log in via `POST /api/auth/login`, then use the returned access token as `Bearer <token>`.
 
 ### Email and product exports
@@ -58,6 +71,16 @@ npm test
 
 Admin features include catalog statistics, product CRUD with az/en/ru translations, category hierarchy management, brands, Excel download, and queued export mail. Admin credentials are seeded from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the root `.env`.
 
+### Cart and sandbox checkout
+
+The storefront includes a persistent cart and authenticated checkout. Open a product, add it to the cart, sign in as a customer, and continue to checkout. Product prices, active status, and stock are re-read and locked in PostgreSQL by the API before an order is created. An approved sandbox order reduces stock; a declined sandbox attempt records a declined order without changing stock. The UI never asks for card details and does not contact a payment provider or collect real money. The sandbox is available only when the API runs in Development and `PAYMENTS__SANDBOX__ENABLED=true`; keep it disabled in every production environment.
+
+- `POST /api/checkout` — authenticated sandbox checkout with product IDs, quantities, language, and the explicit `simulateDecline` test switch.
+- `GET /api/orders/{id}` — authenticated owner-only order details and saved price snapshots.
+- Frontend: product detail **Add to cart** → **Cart** → **Checkout**. Choose the approved or declined simulation to verify both outcomes.
+
+New databases apply the `20261019000000_Orders` migration automatically on startup in Development. Existing databases receive the same migration before the API starts serving requests.
+
 ## Catalog endpoints
 
 Public reads are available at `GET /api/categories`, `GET /api/categories/{id}`, `GET /api/brands`, `GET /api/brands/{id}`, `GET /api/products`, and `GET /api/products/{id}`. Admin-role users can create, update, and delete categories, brands, and products with POST/PUT/DELETE on those paths. Product listing supports `search`, `categoryId`, `brandId`, `minPrice`, `maxPrice`, `page`, `pageSize`, and `sort=price_asc|price_desc|created_desc`. Product reads use `?lang=az` (or `en`/`ru`) first, then the `Accept-Language` header, and fall back to English or the first stored translation. Translations live in one indexed `jsonb` field.
@@ -79,6 +102,7 @@ Configuration uses the standard ASP.NET Core environment variable mapping (`__` 
 | Variable | Purpose |
 | --- | --- |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | PostgreSQL database and credentials |
+| `POSTGRES_PORT` | Host port mapped to PostgreSQL container port 5432; defaults to `5432` |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_EXPIRATION_MINUTES` | JWT validation and issuance; use a random secret of at least 32 bytes |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME` | Startup-seeded administrator |
 | `API_PORT` | Host port mapped to the API container's port 8080 |
@@ -88,6 +112,7 @@ Configuration uses the standard ASP.NET Core environment variable mapping (`__` 
 | `EMAIL__USESTARTTLS` | Use STARTTLS; defaults to `true` |
 | `PRODUCT_EXPORT_RECIPIENT` | Recipient for the recurring product export email |
 | `PRODUCT_EXPORT_CRON` | Hangfire cron expression; defaults to daily at 08:00 |
+| `PAYMENTS__SANDBOX__ENABLED` | Enables simulated checkout in Development only; set `true` for local/test use and `false` in production |
 
 Outside Docker, set `ConnectionStrings__DefaultConnection`, `Jwt__Issuer`, `Jwt__Audience`, `Jwt__SecretKey`, `Jwt__ExpirationMinutes`, and `Admin__Email`/`Admin__Password`/`Admin__FirstName`/`Admin__LastName` in the process environment. No secrets are committed in appsettings.
 

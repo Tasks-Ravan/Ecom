@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, Search, ShoppingBag, UserRound } from 'lucide-react';
+import { ArrowUpRight, Search, ShoppingBag, ShoppingCart, UserRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { listCategories } from '../api/categories';
@@ -8,10 +8,12 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Input } from '../components/ui/input';
 import { useAuth } from '../lib/auth-context';
 import { useTranslation } from 'react-i18next';
+import { useCart } from '../lib/cart-context';
 
 export function StorefrontLayout() {
   const { t } = useTranslation();
   const { user, isAdmin, signOut } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const categories = useQuery({ queryKey: ['categories'], queryFn: listCategories });
@@ -32,6 +34,7 @@ export function StorefrontLayout() {
           <button type="submit" className="sr-only">{t('common.search')}</button>
         </form>
         <div className="header-tools"><LanguageSwitcher /><ThemeToggle />
+          <Link to="/cart" className="header-link cart-nav-link"><ShoppingCart size={17} /><span>{t('nav.cart', 'Cart')}</span>{itemCount > 0 && <span className="cart-count">{itemCount}</span>}</Link>
           {user ? <div className="account-menu"><span className="account-label"><UserRound size={17} />{user.email}</span>
             {isAdmin && <Link to="/admin" className="header-link">{t('nav.admin')}</Link>}
             <button className="header-link" onClick={() => { signOut(); navigate('/'); }}>{t('nav.logout')}</button>

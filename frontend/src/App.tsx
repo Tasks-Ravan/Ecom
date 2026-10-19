@@ -5,11 +5,12 @@ import { router } from './routes/router';
 import { queryClient } from './lib/query-client';
 import { AuthProvider } from './lib/auth-context';
 import { ThemeProvider, useTheme } from './lib/theme-context';
+import { CartProvider } from './lib/cart-context';
 
 export function App() {
-  return <ThemeProvider><QueryClientProvider client={queryClient}><AuthProvider>
+  return <ThemeProvider><QueryClientProvider client={queryClient}><CartProvider><AuthProvider>
     <AppContents />
-  </AuthProvider></QueryClientProvider></ThemeProvider>;
+  </AuthProvider></CartProvider></QueryClientProvider></ThemeProvider>;
 }
 
 function AppContents() {

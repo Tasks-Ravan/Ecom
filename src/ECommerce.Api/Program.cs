@@ -4,6 +4,7 @@ using ECommerce.Api.Domain;
 using ECommerce.Api.Infrastructure;
 using ECommerce.Api.Persistence;
 using ECommerce.Api.Persistence.Seed;
+using ECommerce.Api.Features.Checkout;
 using FluentValidation;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -64,6 +65,8 @@ builder.Services.AddOptions<ProductExportOptions>()
     .Bind(builder.Configuration.GetSection(ProductExportOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<SandboxPaymentOptions>()
+    .Bind(builder.Configuration.GetSection(SandboxPaymentOptions.SectionName));
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration is required.");
@@ -104,6 +107,7 @@ builder.Services.AddScoped<ECommerce.Api.Features.Products.ExportProductsToMail.
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.Register.RegisterHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.Login.LoginHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.RefreshToken.RefreshTokenHandler>();
+builder.Services.AddScoped<CheckoutHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Categories.CategoryHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Brands.BrandHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Products.ProductHandler>();

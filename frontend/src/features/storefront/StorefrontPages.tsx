@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, ArrowUpRight, Box, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Box, ChevronLeft, ChevronRight, Search, ShoppingCart, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { listCategories } from '../../api/categories';
@@ -13,6 +13,8 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { formatCurrency } from '../../lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useCart } from '../../lib/cart-context';
+import { toast } from 'sonner';
 
 export function HomePage() {
   const { t, i18n } = useTranslation();
@@ -108,6 +110,7 @@ export function ProductsPage() {
 export function ProductDetailPage() {
   const { t, i18n } = useTranslation();
   const { id = '' } = useParams();
+  const { addItem } = useCart();
   const query = useQuery({ queryKey: ['product', id, i18n.language], queryFn: () => getProduct(id, i18n.language), enabled: Boolean(id) });
   if (query.isPending) return <section className="page-container content-page"><LoadingState rows={2} /></section>;
   if (query.isError) return <section className="page-container content-page"><ErrorState message={t('errors.notFound')} onRetry={() => void query.refetch()} /></section>;
@@ -116,6 +119,7 @@ export function ProductDetailPage() {
     <div className="product-detail-grid"><div className="product-detail-art"><div className="product-art-symbol"><Box size={96} strokeWidth={1} /></div><span className="product-art-label">{product.sku}</span></div>
       <div className="product-detail-copy"><Badge className="category-badge">{product.categoryName}</Badge><h1>{product.name}</h1><p className="detail-brand">{product.brandName}</p>
         <div className="detail-price">{formatCurrency(product.price, i18n.language)}</div><p className="detail-description">{product.description}</p>
+        <div className="product-detail-actions"><Button type="button" disabled={!product.isActive || product.stockQuantity <= 0} onClick={() => { addItem(product.id); toast.success(t('product.addedToCart', 'Added to your cart')); }}>{t('product.addToCart', 'Add to cart')} <ShoppingCart size={16} /></Button><Link className="text-link" to="/cart">{t('nav.cart', 'Cart')} <ArrowUpRight size={15} /></Link></div>
         <div className="detail-meta"><span>{t('product.sku')}</span><strong>{product.sku}</strong></div>
         <div className="detail-meta"><span>{t('common.stock')}</span><Badge className={product.stockQuantity > 0 ? 'status-active' : 'status-inactive'}>{product.stockQuantity > 0 ? t('product.inStock') : t('product.outOfStock')}</Badge></div>
         <div className="detail-meta"><span>{t('common.category')}</span><strong>{product.categoryName}</strong></div><div className="detail-meta"><span>{t('common.brand')}</span><strong>{product.brandName}</strong></div>

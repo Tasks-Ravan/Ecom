@@ -59,6 +59,28 @@ export interface ProductResponse {
   updatedAt: string;
 }
 
+export interface CheckoutItemRequest {
+  productId: string;
+  quantity: number;
+}
+
+export interface CheckoutRequest {
+  items: CheckoutItemRequest[];
+  simulateDecline: boolean;
+  language: Language;
+}
+
+export interface CheckoutResponse {
+  orderId: string;
+  orderNumber: string;
+  status: 'Paid' | 'PaymentDeclined';
+  paymentProvider: 'Sandbox';
+  totalAmount: number;
+  currency: 'AZN';
+  message: string;
+  createdAt: string;
+}
+
 export interface ProductListResponse {
   items: ProductResponse[];
   page: number;
