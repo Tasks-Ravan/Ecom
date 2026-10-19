@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { downloadProductExcel } from '../../api/products';
 import { sendProductExport } from '../../api/exports';
+import { createDashboardSession } from '../../api/auth';
 import { ApiError } from '../../api/client';
 import { PageHeader } from '../../components/PageHeader';
 import { Button } from '../../components/ui/button';
@@ -25,6 +26,14 @@ export function ExportsPage() {
   const send = useMutation({ mutationFn: (values: ExportFormValues) => sendProductExport(values), onSuccess: (response) => {
     toast.success(`${t('admin.queued')} · ${response.jobId}`, { description: t('admin.queueNote') }); reset();
   }, onError: (error) => toast.error(error instanceof ApiError ? error.message : t('errors.request')) });
+  const openDashboard = async () => {
+    try {
+      await createDashboardSession();
+      window.location.assign('/hangfire/');
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : t('errors.request'));
+    }
+  };
   return <>
     <PageHeader title={t('admin.exportsTitle')} description={t('admin.exportsBody')} />
     <div className="export-grid">
@@ -33,13 +42,13 @@ export function ExportsPage() {
       </section>
       <section className="card export-card"><span className="export-icon mint"><Mail size={20} /></span><div><h2>{t('admin.sendExportTitle')}</h2><p>{t('admin.sendExportBody')}</p></div>
         <form className="export-form" onSubmit={(event) => void handleSubmit((values) => send.mutate(values))(event)} noValidate>
-          <label className="form-field"><span className="field-label">{t('admin.recipient')}</span><Input type="email" autoComplete="email" placeholder={t('admin.recipientPlaceholder')} {...register('recipientEmail')} />{errors.recipientEmail && <span className="form-error">{errors.recipientEmail.message}</span>}</label>
+          <label className="form-field export-recipient-field"><span className="field-label">{t('admin.recipient')}</span><Input className="export-recipient-input" type="email" autoComplete="email" placeholder={t('admin.recipientPlaceholder')} aria-invalid={Boolean(errors.recipientEmail)} {...register('recipientEmail')} />{errors.recipientEmail && <span className="form-error">{errors.recipientEmail.message}</span>}</label>
           <Button type="submit" disabled={send.isPending}>{send.isPending ? t('common.loading') : t('admin.queueExport')} <Send size={15} /></Button>
         </form>
       </section>
     </div>
     <section className="card schedule-card"><span className="schedule-icon"><Clock3 size={20} /></span><div><h2>{t('admin.scheduleTitle')}</h2><p>{t('admin.scheduleBody')}</p></div>
-      <a className="button button-secondary button-default" href="/hangfire" target="_blank" rel="noreferrer">{t('admin.hangfire')}<ArrowUpRight size={15} /></a>
+      <a className="button button-secondary button-default" href="/hangfire/" onClick={(event) => { event.preventDefault(); void openDashboard(); }}>{t('admin.hangfire')}<ArrowUpRight size={15} /></a>
     </section>
     <div className="export-footnote"><BriefcaseBusiness size={15} /><span>{t('admin.exportFootnote')}</span></div>
   </>;

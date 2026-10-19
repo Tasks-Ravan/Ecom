@@ -69,6 +69,18 @@ var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOption
     ?? throw new InvalidOperationException("Jwt configuration is required.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Hangfire uses normal browser navigation, which cannot attach the
+            // SPA's bearer header. Accept its short-lived, path-scoped cookie there.
+            if (context.Request.Path.StartsWithSegments("/hangfire") &&
+                context.Request.Cookies.TryGetValue("hangfire_access_token", out var dashboardToken))
+                context.Token = dashboardToken;
+            return Task.CompletedTask;
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

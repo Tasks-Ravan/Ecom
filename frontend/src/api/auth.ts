@@ -9,3 +9,6 @@ export const register = (request: RegisterRequest) =>
 
 export const refreshSession = (refreshToken: string) =>
   apiRequest<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) });
+
+export const createDashboardSession = () =>
+  apiRequest<void>('/auth/dashboard-session', { method: 'POST' });

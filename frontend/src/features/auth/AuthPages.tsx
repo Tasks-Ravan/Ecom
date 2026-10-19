@@ -52,6 +52,7 @@ export function LoginPage() {
 export function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({ resolver: zodResolver(registerSchema) });
   const submit = handleSubmit(async (values) => {
@@ -72,7 +73,14 @@ export function RegisterPage() {
         <FormField label={t('auth.lastName')} error={errors.lastName?.message}><Input autoComplete="family-name" {...register('lastName')} /></FormField>
       </div>
       <FormField label={t('auth.email')} error={errors.email?.message}><Input type="email" autoComplete="email" {...register('email')} /></FormField>
-      <FormField label={t('auth.password')} error={errors.password?.message}><Input type="password" autoComplete="new-password" {...register('password')} /></FormField>
+      <FormField label={t('auth.password')} error={errors.password?.message}>
+        <div className="password-input">
+          <Input type={showPassword ? 'text' : 'password'} autoComplete="new-password" {...register('password')} />
+          <button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={t('auth.togglePassword')} aria-pressed={showPassword}>
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        </div>
+      </FormField>
       <p className="muted text-xs leading-relaxed">{t('auth.passwordRules')}</p>
       {serverError && <p className="form-error" role="alert">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={isSubmitting}>{isSubmitting ? t('common.loading') : t('auth.signUp')} <ArrowRight size={16} /></Button>

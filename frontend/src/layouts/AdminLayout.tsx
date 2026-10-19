@@ -5,6 +5,9 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../lib/auth-context';
 import { useTranslation } from 'react-i18next';
+import { createDashboardSession } from '../api/auth';
+import { ApiError } from '../api/client';
+import { toast } from 'sonner';
 
 const navItems = [
   { to: '/admin', key: 'dashboard', icon: BarChart3, end: true },
@@ -21,6 +24,14 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const active = navItems.find((item) => item.end ? location.pathname === item.to : location.pathname.startsWith(item.to));
+  const openDashboard = async () => {
+    try {
+      await createDashboardSession();
+      window.location.assign('/hangfire/');
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : t('errors.request'));
+    }
+  };
   const side = <>
     <div className="admin-brand"><Link to="/admin" onClick={() => setMobileOpen(false)} className="brand-lockup">
       <span className="brand-mark"><BriefcaseBusiness size={18} /></span><span><strong>{t('brand')}</strong><small>{t('admin.dashboardTitle')}</small></span>
@@ -31,7 +42,7 @@ export function AdminLayout() {
         onClick={() => setMobileOpen(false)} className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
         <Icon size={18} /><span>{t(`admin.${item.key}`)}</span>{location.pathname.startsWith(item.to) && !item.end ? <ChevronRight size={15} className="nav-arrow" /> : null}
       </NavLink>; })}
-      <a className="admin-nav-link" href="/hangfire" target="_blank" rel="noreferrer"><BriefcaseBusiness size={18} /><span>{t('admin.hangfire')}</span><ArrowExternal /></a>
+      <a className="admin-nav-link" href="/hangfire/" onClick={(event) => { event.preventDefault(); void openDashboard(); }}><BriefcaseBusiness size={18} /><span>{t('admin.hangfire')}</span><ArrowExternal /></a>
     </nav>
     <div className="sidebar-bottom"><Link to="/" className="storefront-link" onClick={() => setMobileOpen(false)}><ChevronLeft size={16} />{t('admin.backToStore')}</Link>
       <button className="admin-user" onClick={() => { signOut(); navigate('/login'); }}><span className="avatar">{user?.email.slice(0, 1).toUpperCase()}</span>

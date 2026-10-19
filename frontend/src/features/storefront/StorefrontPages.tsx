@@ -61,11 +61,18 @@ export function ProductsPage() {
   const categories = useQuery({ queryKey: ['categories'], queryFn: listCategories });
   const brands = useQuery({ queryKey: ['brands'], queryFn: listBrands });
   useEffect(() => {
+    // Draft filter state is initialized from the URL. Do not rewrite the URL on
+    // mount or when pagination/brand filters change, since that would reset page.
+    if (searchInput === (params.get('search') ?? '')) return;
     const timeout = window.setTimeout(() => updateParam(setParams, 'search', searchInput), 300);
     return () => window.clearTimeout(timeout);
-  }, [searchInput, setParams]);
+  }, [searchInput, params, setParams]);
   useEffect(() => {
+    if (minPrice === (params.get('minPrice') ?? '') && maxPrice === (params.get('maxPrice') ?? '')) return;
     const timeout = window.setTimeout(() => setParams((current) => {
+      // A newer URL navigation (for example, changing brand or page) wins over
+      // a stale debounce callback.
+      if (minPrice === (current.get('minPrice') ?? '') && maxPrice === (current.get('maxPrice') ?? '')) return current;
       const next = new URLSearchParams(current);
       if (minPrice) next.set('minPrice', minPrice); else next.delete('minPrice');
       if (maxPrice) next.set('maxPrice', maxPrice); else next.delete('maxPrice');
@@ -73,7 +80,7 @@ export function ProductsPage() {
       return next;
     }, { replace: true }), 250);
     return () => window.clearTimeout(timeout);
-  }, [minPrice, maxPrice, setParams]);
+  }, [minPrice, maxPrice, params, setParams]);
   const setFilter = (key: string, value: string) => updateParam(setParams, key, value);
   return <section className="page-container content-page">
     <PageHeader title={t('product.title')} description={t('product.description')} />
