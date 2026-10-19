@@ -2,7 +2,7 @@ services:
   - type: web
     name: ecommerce-api
     runtime: docker
-    plan: starter
+    plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -46,7 +46,7 @@ services:
 
 databases:
   - name: ecommerce-postgres
-    plan: basic-256mb
+    plan: free
     region: frankfurt
     databaseName: ecommerce
     user: ecommerce
