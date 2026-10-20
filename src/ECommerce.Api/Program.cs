@@ -8,7 +8,9 @@ using ECommerce.Api.Features.Checkout;
 using FluentValidation;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +21,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?.Where(origin => !string.IsNullOrWhiteSpace(origin)).ToArray() ?? [];
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -51,6 +57,15 @@ builder.Services.AddOptions<JwtOptions>()
     .Validate(options => Encoding.UTF8.GetByteCount(options.SecretKey) >= 32,
         "JWT secret key must contain at least 32 UTF-8 bytes.")
     .ValidateOnStart();
+builder.Services.AddOptions<GoogleOAuthOptions>()
+    .Bind(builder.Configuration.GetSection(GoogleOAuthOptions.SectionName));
+builder.Services.AddOptions<ClientAppOptions>()
+    .Bind(builder.Configuration.GetSection(ClientAppOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri) &&
+                         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+                         string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment),
+        "ClientApp:BaseUrl must be an absolute HTTP(S) origin or base URL without a query or fragment.")
+    .ValidateOnStart();
 builder.Services.AddOptions<AdminOptions>()
     .Bind(builder.Configuration.GetSection(AdminOptions.SectionName))
     .ValidateDataAnnotations()
@@ -70,7 +85,8 @@ builder.Services.AddOptions<SandboxPaymentOptions>()
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration is required.");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+var authentication = builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+authentication.AddJwtBearer(options =>
 {
     options.Events = new JwtBearerEvents
     {
@@ -96,6 +112,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ClockSkew = TimeSpan.FromSeconds(30)
     };
 });
+authentication.AddCookie(IdentityConstants.ExternalScheme, options =>
+{
+    options.Cookie.Name = "ecommerce.external";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+    options.SlidingExpiration = false;
+});
+var googleOptions = builder.Configuration.GetSection(GoogleOAuthOptions.SectionName).Get<GoogleOAuthOptions>()
+    ?? new GoogleOAuthOptions();
+if (googleOptions.IsConfigured)
+{
+    authentication.AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+    {
+        options.ClientId = googleOptions.ClientId;
+        options.ClientSecret = googleOptions.ClientSecret;
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+        options.CallbackPath = "/signin-google";
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+        options.ClaimActions.MapJsonKey("email_verified", "verified_email");
+    });
+}
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IEmailSender>(services => emailOptions.IsLoggingMode
@@ -107,6 +147,8 @@ builder.Services.AddScoped<ECommerce.Api.Features.Products.ExportProductsToMail.
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.Register.RegisterHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.Login.LoginHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Auth.RefreshToken.RefreshTokenHandler>();
+builder.Services.AddScoped<ECommerce.Api.Features.Auth.GoogleLogin.GoogleLoginHandler>();
+builder.Services.AddScoped<ECommerce.Api.Features.Auth.GoogleLogin.GoogleLoginExchangeHandler>();
 builder.Services.AddScoped<CheckoutHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Categories.CategoryHandler>();
 builder.Services.AddScoped<ECommerce.Api.Features.Brands.BrandHandler>();
@@ -116,6 +158,7 @@ builder.Services.AddEndpoints(typeof(Program).Assembly);
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.UseCors();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

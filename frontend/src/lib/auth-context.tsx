@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { login as loginRequest, refreshSession } from '../api/auth';
 import { setAccessToken, setRefreshToken, setSessionExpiredHandler } from '../api/client';
-import type { UserRole } from '../api/types';
+import type { AuthResponse, UserRole } from '../api/types';
 
 export interface AuthUser {
   id: string;
@@ -15,6 +15,7 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  completeSignIn: (response: AuthResponse) => AuthUser;
   signOut: () => void;
 }
 
@@ -76,14 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return applyToken(result.accessToken, result.refreshToken);
   }, [applyToken]);
 
+  const completeSignIn = useCallback((response: AuthResponse) =>
+    applyToken(response.accessToken, response.refreshToken), [applyToken]);
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     isReady,
     isAuthenticated: Boolean(token),
     isAdmin: user?.roles.includes('Admin') ?? false,
     signIn,
+    completeSignIn,
     signOut,
-  }), [user, isReady, token, signIn, signOut]);
+  }), [user, isReady, token, signIn, completeSignIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

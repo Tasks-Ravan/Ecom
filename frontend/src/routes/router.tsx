@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout, StorefrontLayout } from '../layouts/StorefrontLayout';
-import { LoginPage, RegisterPage } from '../features/auth/AuthPages';
+import { GoogleOAuthCallbackPage, LoginPage, RegisterPage } from '../features/auth/AuthPages';
 import { HomePage, ProductDetailPage, ProductsPage } from '../features/storefront/StorefrontPages';
 import { AdminProductsPage, ProductEditorPage } from '../features/products/AdminProductsPage';
 import { CategoriesPage } from '../features/categories/CategoriesPage';
@@ -22,6 +22,7 @@ export const router = createBrowserRouter([
   { element: <AuthLayout />, children: [
     { path: '/login', element: <LoginPage /> },
     { path: '/register', element: <RegisterPage /> },
+    { path: '/auth/google/callback', element: <GoogleOAuthCallbackPage /> },
   ] },
   { element: <AdminRoute />, children: [{ path: '/admin', element: <AdminLayout />, children: [
     { index: true, element: <DashboardPage /> },

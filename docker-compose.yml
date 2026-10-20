@@ -28,6 +28,10 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SecretKey: ${JWT_SECRET_KEY}
       Jwt__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-15}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      ClientApp__BaseUrl: ${CLIENT_APP_BASE_URL:-http://localhost:5173}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-}
       Admin__Email: ${ADMIN_EMAIL}
       Admin__Password: ${ADMIN_PASSWORD}
       Admin__FirstName: ${ADMIN_FIRST_NAME:-System}

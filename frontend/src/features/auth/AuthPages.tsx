@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { register as registerAccount } from '../../api/auth';
+import { apiBaseUrl } from '../../api/client';
+import { exchangeGoogleLoginCode } from '../../api/auth';
 import { ApiError } from '../../api/client';
 import type { LoginFormValues, RegisterFormValues } from '../../lib/schemas';
 import { loginSchema, registerSchema } from '../../lib/schemas';
@@ -45,7 +47,46 @@ export function LoginPage() {
       {serverError && <p className="form-error" role="alert">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={isSubmitting}>{isSubmitting ? t('common.loading') : t('auth.signIn')} <ArrowRight size={16} /></Button>
     </form>
+    <div className="my-4 text-center text-sm muted">— {t('auth.or')} —</div>
+    <Button type="button" variant="secondary" className="w-full" onClick={() => window.location.assign(`${apiBaseUrl}/auth/google`)}>
+      {t('auth.continueWithGoogle')}
+    </Button>
     <p className="auth-footer">{t('auth.noAccount')} <Link to="/register">{t('auth.signUp')}</Link></p>
+  </section>;
+}
+
+export function GoogleOAuthCallbackPage() {
+  const { t } = useTranslation();
+  const { completeSignIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [error, setError] = useState('');
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    window.history.replaceState({}, document.title, location.pathname);
+    if (!code || params.has('error')) {
+      setError(t(params.get('error') === 'google_not_configured' ? 'auth.googleNotConfigured' : 'auth.googleFailed'));
+      return;
+    }
+
+    void exchangeGoogleLoginCode(code)
+      .then((session) => {
+        const user = completeSignIn(session);
+        navigate(user.roles.includes('Admin') ? '/admin' : '/', { replace: true });
+      })
+      .catch(() => setError(t('auth.googleFailed')));
+  }, [completeSignIn, location.pathname, location.search, navigate, t]);
+
+  return <section className="auth-card">
+    <div className="auth-icon"><LockKeyhole size={22} /></div>
+    <h1>{error ? t('auth.googleFailedTitle') : t('common.loading')}</h1>
+    <p role={error ? 'alert' : undefined}>{error || t('auth.googleCompleting')}</p>
+    {error && <p className="auth-footer"><Link to="/login">{t('auth.signIn')}</Link></p>}
   </section>;
 }
 

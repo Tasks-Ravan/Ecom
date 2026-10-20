@@ -10,6 +10,7 @@ const session = (roles: ('Admin' | 'Customer')[], authenticated = true): AuthCon
   isAuthenticated: authenticated,
   isAdmin: roles.includes('Admin'),
   signIn: async () => ({ id: 'user-1', email: 'user@example.com', roles }),
+  completeSignIn: () => ({ id: 'user-1', email: 'user@example.com', roles }),
   signOut: () => undefined,
 });
 

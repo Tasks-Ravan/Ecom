@@ -10,5 +10,8 @@ export const register = (request: RegisterRequest) =>
 export const refreshSession = (refreshToken: string) =>
   apiRequest<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) });
 
+export const exchangeGoogleLoginCode = (code: string) =>
+  apiRequest<AuthResponse>('/auth/google/exchange', { method: 'POST', body: JSON.stringify({ code }) });
+
 export const createDashboardSession = () =>
   apiRequest<void>('/auth/dashboard-session', { method: 'POST' });

@@ -60,6 +60,10 @@ npm run dev
 
 Vite serves the frontend on port 5173 and proxies `/api`, `/scalar`, `/openapi`, and `/hangfire` to `VITE_DEV_PROXY_TARGET` (default `http://localhost:8080`). Set `VITE_API_BASE_URL` to `/api` when using the proxy. For Docker, set `FRONTEND_PORT` (default `3010`) in the root `.env`, then run `docker compose up --build`; open `http://localhost:3010`.
 
+### Google sign-in
+
+The login page supports Google OAuth when credentials are configured. In Google Cloud Console, configure the OAuth consent screen, create a Web application OAuth client, and add the API callback URL as an authorized redirect URI: `http://localhost:8080/signin-google` for local Docker development, or `https://<your-api-host>/signin-google` after deployment. Put the client ID and secret in the root `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; set `CLIENT_APP_BASE_URL` to the frontend origin (for example `http://localhost:5173`). For a separately hosted frontend, set `CORS_ALLOWED_ORIGIN` to its exact HTTPS origin. Never commit credentials. The API uses a short-lived, single-use exchange code to return the application JWTs to the frontend; Google accounts receive the Customer role and a verified Google email can link to an existing account with the same address. If Google credentials are empty, normal email/password login remains available and the Google button shows a configuration message.
+
 Frontend checks:
 
 ```sh
@@ -104,6 +108,9 @@ Configuration uses the standard ASP.NET Core environment variable mapping (`__` 
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | PostgreSQL database and credentials |
 | `POSTGRES_PORT` | Host port mapped to PostgreSQL container port 5432; defaults to `5432` |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_EXPIRATION_MINUTES` | JWT validation and issuance; use a random secret of at least 32 bytes |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional Google OAuth web client credentials |
+| `CLIENT_APP_BASE_URL` | Frontend origin used after Google sign-in; defaults to `http://localhost:5173` |
+| `CORS_ALLOWED_ORIGIN` | Optional exact frontend origin allowed to call the API from another domain |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME` | Startup-seeded administrator |
 | `API_PORT` | Host port mapped to the API container's port 8080 |
 | `EMAIL__HOST`, `EMAIL__PORT` | SMTP server and port; Brevo uses `smtp-relay.brevo.com:587` |
